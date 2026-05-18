@@ -1,29 +1,101 @@
 <script>
-    // Phase 0 stub. The real index lands in Phase 2 once /api/apps exists.
+    import { onMount } from 'svelte';
+    import { listApps } from '../lib/api.js';
+    import AppCard from '../lib/components/AppCard.svelte';
+    import SearchBar from '../lib/components/SearchBar.svelte';
+
+    let apps = $state([]);
+    let loading = $state(true);
+    let error = $state(null);
+    let query = $state('');
+
+    onMount(async () => {
+        try {
+            apps = await listApps();
+        } catch (e) {
+            error = e.message || 'Failed to load applications';
+        } finally {
+            loading = false;
+        }
+    });
+
+    function matches(app, q) {
+        if (!q) return true;
+        const needle = q.toLowerCase();
+        return (
+            (app.title || '').toLowerCase().includes(needle) ||
+            (app.description || '').toLowerCase().includes(needle) ||
+            (app.group || '').toLowerCase().includes(needle)
+        );
+    }
+
+    let filtered = $derived(apps.filter((a) => matches(a, query)));
+
+    let groups = $derived.by(() => {
+        const m = new Map();
+        for (const app of filtered) {
+            const g = app.group || 'Other';
+            if (!m.has(g)) m.set(g, []);
+            m.get(g).push(app);
+        }
+        return [...m.entries()].sort(([a], [b]) => a.localeCompare(b));
+    });
 </script>
 
 <section class="hero">
-    <h1>EdgeLab</h1>
-    <p class="tagline">Boliden's Kubernetes cluster for ML research and edge operations.</p>
+    <div class="hero-text">
+        <h1>EdgeLab</h1>
+        <p class="tagline">Boliden's Kubernetes cluster for ML research and edge operations.</p>
+    </div>
+    <SearchBar bind:value={query} />
 </section>
 
-<section class="empty">
-    <h2>No applications registered yet</h2>
-    <p>
-        Add <code>kex/enabled: "true"</code> and friends to your ArgoCD
-        <code>Application</code> CR to see it here.
-    </p>
-    <pre><code>{`metadata:
+{#if loading}
+    <p class="state">Loading applications…</p>
+{:else if error}
+    <p class="state error">Failed to load applications: {error}</p>
+{:else if apps.length === 0}
+    <section class="empty">
+        <h2>No applications registered yet</h2>
+        <p>
+            Add <code>kex/enabled: "true"</code> and friends to your ArgoCD
+            <code>Application</code> CR to see it here.
+        </p>
+        <pre><code>{`metadata:
   annotations:
     kex/enabled: "true"
     kex/title: "My App"
     kex/description: "What it does"
     kex/group: "My team"`}</code></pre>
-</section>
+    </section>
+{:else if filtered.length === 0}
+    <p class="state">No matches for "{query}".</p>
+{:else}
+    {#each groups as [group, items] (group)}
+        <section class="group">
+            <h2>{group}</h2>
+            <div class="grid">
+                {#each items as app (app.name)}
+                    <AppCard {app} />
+                {/each}
+            </div>
+        </section>
+    {/each}
+{/if}
 
 <style>
     .hero {
-        padding: 3rem 0 2rem;
+        display: flex;
+        align-items: flex-end;
+        justify-content: space-between;
+        gap: 2rem;
+        padding: 3rem 0 2.5rem;
+        flex-wrap: wrap;
+    }
+
+    .hero-text {
+        flex: 1;
+        min-width: 280px;
     }
 
     h1 {
@@ -34,11 +106,41 @@
         background-clip: text;
         color: transparent;
         margin-bottom: 0.5rem;
+        line-height: 1.1;
     }
 
     .tagline {
         color: var(--ctp-subtext1);
         font-size: 1.05rem;
+        max-width: 60ch;
+    }
+
+    .group {
+        margin-bottom: 2rem;
+    }
+
+    .group h2 {
+        font-size: 1.05rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        color: var(--ctp-subtext0);
+        margin-bottom: 1rem;
+    }
+
+    .grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+        gap: 1rem;
+    }
+
+    .state {
+        padding: 2rem 0;
+        color: var(--ctp-subtext0);
+    }
+
+    .state.error {
+        color: var(--ctp-red);
     }
 
     .empty {
