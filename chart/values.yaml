@@ -1,0 +1,35 @@
+image:
+  repository: ghcr.io/jonatanolofsson/kex
+  tag: latest
+  pullPolicy: Always
+
+# Ingress host (e.g. edgelab.k8sapps.boliden.internal). Override per
+# environment.
+host: edgelab.k8sapps.boliden.internal
+
+# Apply the cluster-wide OIDC auth chain. Uses the same Middleware names
+# the rest of the platform already standardises on.
+oauthMiddlewares:
+  - name: oauth2-auth
+    namespace: cluster-auth
+  - name: oauth2-signin
+    namespace: cluster-auth
+
+# Secret holding the ArgoCD API token (sealed via kubeseal-webgui).
+# argocdTokenSecretName: kex-argocd-token
+# argocdTokenSecretKey: token
+argocdTokenSecretName: ""
+argocdTokenSecretKey: token
+
+# ArgoCD server URL inside the cluster.
+argocdServer: https://argocd-server.argocd.svc.cluster.local
+
+resources:
+  requests:
+    cpu: 50m
+    memory: 128Mi
+  limits:
+    cpu: 500m
+    memory: 512Mi
+
+replicaCount: 1

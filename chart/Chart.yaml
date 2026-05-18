@@ -1,0 +1,12 @@
+apiVersion: v2
+name: kex
+description: Kubernetes index — annotation-driven cluster landing page + per-app detail view
+type: application
+version: 0.1.0
+appVersion: "0.1.0"
+home: https://github.com/jonatanolofsson/kex
+sources:
+  - https://github.com/jonatanolofsson/kex
+maintainers:
+  - name: Jonatan Olofsson
+    email: jonatan.olofsson@boliden.com
