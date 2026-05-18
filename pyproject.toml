@@ -1,0 +1,52 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "kex"
+version = "0.1.0"
+description = "Kubernetes index — annotation-driven cluster landing page + per-app detail view"
+requires-python = ">=3.13"
+license = "MIT"
+authors = [{ name = "Jonatan Olofsson" }]
+dependencies = [
+    "fastapi>=0.115",
+    "uvicorn[standard]>=0.34",
+    "httpx>=0.28",
+    "kubernetes>=31.0",
+    "cachetools>=5.5",
+    "markdown-it-py>=3.0",
+    "pydantic>=2.10",
+]
+
+[dependency-groups]
+dev = [
+    "pytest>=8.0",
+    "pytest-asyncio>=0.24",
+    "pytest-cov>=6.0",
+    "ruff>=0.8",
+    "sphinx>=8.0",
+    "sphinx-rtd-theme>=3.0",
+    "sphinx-autobuild>=2024.10",
+    "respx>=0.21",
+]
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py313"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "W", "UP", "B"]
+ignore = ["E501"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = ["test_*.py"]
+asyncio_mode = "auto"
+addopts = ["--strict-config", "--strict-markers"]
+markers = [
+    "slow: end-to-end tests against a real cluster (deselect with '-m \"not slow\"')",
+]
