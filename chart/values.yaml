@@ -7,13 +7,10 @@ image:
 # environment.
 host: edgelab.k8sapps.boliden.internal
 
-# Apply the cluster-wide OIDC auth chain. Uses the same Middleware names
-# the rest of the platform already standardises on.
-oauthMiddlewares:
-  - name: oauth2-auth
-    namespace: cluster-auth
-  - name: oauth2-signin
-    namespace: cluster-auth
+# The chart creates per-namespace Middleware CRs that forward to the
+# central cluster-auth oauth2-proxy (see chart/templates/middleware.yaml).
+# Set to false to disable the OIDC gate entirely (not recommended).
+oauthEnabled: true
 
 # Secret holding the ArgoCD API token (sealed via kubeseal-webgui).
 # argocdTokenSecretName: kex-argocd-token

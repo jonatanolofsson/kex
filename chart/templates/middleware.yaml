@@ -1,0 +1,51 @@
+{{/* Per-namespace copies of the cluster-auth Middleware CRs.
+     The Traefik-CRD provider doesn't allow cross-namespace Middleware
+     references by default; the cluster-auth chart documents this
+     "consumer pattern": each consuming namespace declares its own
+     Middlewares that forward to the central oauth2-proxy + gate-service.
+     See default-helm-charts-ARGO/auth/cluster-auth/README.md for the
+     canonical shape. */}}
+apiVersion: traefik.io/v1alpha1
+kind: Middleware
+metadata:
+  name: oauth2-auth
+  namespace: {{ .Release.Namespace }}
+  labels: {{- include "kex.labels" . | nindent 4 }}
+spec:
+  forwardAuth:
+    address: http://oauth2-proxy.cluster-auth.svc.cluster.local:4180/oauth2/auth
+    trustForwardHeader: true
+    authResponseHeaders:
+      - X-Auth-Request-Email
+      - X-Auth-Request-User
+      - X-Auth-Request-Groups
+---
+apiVersion: traefik.io/v1alpha1
+kind: Middleware
+metadata:
+  name: oauth2-signin
+  namespace: {{ .Release.Namespace }}
+  labels: {{- include "kex.labels" . | nindent 4 }}
+spec:
+  errors:
+    status:
+      - "401"
+    service:
+      name: gate-service
+      port: 80
+    query: /auto-redirect-to-login
+---
+{{/* ExternalName Service that proxies to the central gate-service in
+     cluster-auth, so the oauth2-signin error-handler can reach it
+     from this namespace without cross-namespace service references. */}}
+apiVersion: v1
+kind: Service
+metadata:
+  name: gate-service
+  namespace: {{ .Release.Namespace }}
+  labels: {{- include "kex.labels" . | nindent 4 }}
+spec:
+  type: ExternalName
+  externalName: gate-service.cluster-auth.svc.cluster.local
+  ports:
+    - port: 80

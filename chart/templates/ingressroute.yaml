@@ -11,10 +11,10 @@ spec:
     - match: Host(`{{ .Values.host }}`)
       kind: Rule
       middlewares:
-        {{- range .Values.oauthMiddlewares }}
-        - name: {{ .name }}
-          namespace: {{ .namespace }}
-        {{- end }}
+        # Matches the cluster-auth "consumer pattern" — same-namespace
+        # references, the Middleware CRs are defined in middleware.yaml.
+        - name: oauth2-signin
+        - name: oauth2-auth
       services:
         - name: {{ include "kex.name" . }}
           port: 80
