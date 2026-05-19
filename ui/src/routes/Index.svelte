@@ -31,6 +31,21 @@
 
     let filtered = $derived(apps.filter((a) => matches(a, query)));
 
+    /**
+     * Group weight = min(weights of apps in the group). Lower weight floats
+     * the group higher on the landing page. Apps that don't declare a
+     * `kex/weight` annotation arrive as `weight: 0`. Ties break on group
+     * name via `localeCompare` so the order is deterministic.
+     */
+    function groupWeight(apps) {
+        let min = Infinity;
+        for (const app of apps) {
+            const w = Number.isFinite(app.weight) ? app.weight : 0;
+            if (w < min) min = w;
+        }
+        return min === Infinity ? 0 : min;
+    }
+
     let groups = $derived.by(() => {
         const m = new Map();
         for (const app of filtered) {
@@ -38,7 +53,10 @@
             if (!m.has(g)) m.set(g, []);
             m.get(g).push(app);
         }
-        return [...m.entries()].sort(([a], [b]) => a.localeCompare(b));
+        return [...m.entries()].sort(([aName, aApps], [bName, bApps]) => {
+            const dw = groupWeight(aApps) - groupWeight(bApps);
+            return dw !== 0 ? dw : aName.localeCompare(bName);
+        });
     });
 </script>
 

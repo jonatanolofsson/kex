@@ -49,6 +49,7 @@ def _app_doc(
     links: dict[str, str] | None = None,
     about: str = "",
     history: list[dict[str, str]] | None = None,
+    weight: str | None = None,
 ) -> dict[str, Any]:
     annotations: dict[str, str] = {}
     if enabled:
@@ -60,6 +61,8 @@ def _app_doc(
     annotations["kex/group"] = group
     if about:
         annotations["kex/about"] = about
+    if weight is not None:
+        annotations["kex/weight"] = weight
     for key, value in (links or {}).items():
         annotations[f"kex/links.{key}"] = value
 
@@ -220,6 +223,50 @@ class TestDetail:
             ("a.example", "/p/"),
             ("b.example", "/"),
         }
+
+    def test_path_only_ingressroutes_dropped(
+        self, client: TestClient, fake_cluster: dict[str, Any]
+    ) -> None:
+        """An IngressRoute without a Host() — e.g. an internal PathPrefix
+        catch-all like the kubernetes-dashboard's
+        `/clusters/main/fetchAllowedNamespaces` route — must not surface as
+        a user-navigable URL on the detail page (was issue 1 of v1.1)."""
+        fake_cluster["applications"] = [_app_doc("a", namespace="ns")]
+        fake_cluster["ingressroutes"]["ns"] = [
+            {
+                "spec": {
+                    "routes": [
+                        {"match": "Host(`a.example`)"},
+                        {"match": "PathPrefix(`/internal/`)"},
+                    ]
+                }
+            }
+        ]
+        body = client.get("/api/apps/a").json()
+        # Only the Host()-shaped route surfaces.
+        assert body["ingresses"] == [{"host": "a.example", "path": "/"}]
+
+
+class TestWeightInResponse:
+    def test_list_response_carries_weight(
+        self, client: TestClient, fake_cluster: dict[str, Any]
+    ) -> None:
+        fake_cluster["applications"] = [
+            _app_doc("default-weight"),
+            _app_doc("heavy", weight="10"),
+            _app_doc("floats-up", weight="-2.5"),
+        ]
+        rows = {row["name"]: row for row in client.get("/api/apps").json()}
+        assert rows["default-weight"]["weight"] == 0.0
+        assert rows["heavy"]["weight"] == 10.0
+        assert rows["floats-up"]["weight"] == -2.5
+
+    def test_detail_response_carries_weight(
+        self, client: TestClient, fake_cluster: dict[str, Any]
+    ) -> None:
+        fake_cluster["applications"] = [_app_doc("a", weight="-30")]
+        body = client.get("/api/apps/a").json()
+        assert body["weight"] == -30.0
 
 
 class TestGitFanout:

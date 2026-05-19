@@ -189,3 +189,20 @@ def test_parse_handles_missing_blocks(broken: dict) -> None:
     meta = parse(broken)
     assert isinstance(meta.name, str)
     assert meta.links == []
+
+
+class TestWeight:
+    def test_missing_defaults_to_zero(self) -> None:
+        assert parse(_app({})).weight == 0.0
+
+    def test_positive_integer(self) -> None:
+        assert parse(_app({"kex/weight": "10"})).weight == 10.0
+
+    def test_negative_float(self) -> None:
+        assert parse(_app({"kex/weight": "-2.5"})).weight == -2.5
+
+    def test_malformed_falls_back_to_zero(self) -> None:
+        assert parse(_app({"kex/weight": "high-priority"})).weight == 0.0
+
+    def test_empty_string_defaults_to_zero(self) -> None:
+        assert parse(_app({"kex/weight": ""})).weight == 0.0

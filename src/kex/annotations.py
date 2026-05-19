@@ -53,6 +53,7 @@ class AppMetadata:
     health_status: str | None
     sync_revision: str | None
     history: list[dict[str, Any]]
+    weight: float
 
 
 def is_enabled(app: dict[str, Any]) -> bool:
@@ -99,7 +100,23 @@ def parse(app: dict[str, Any]) -> AppMetadata:
         health_status=(status.get("health") or {}).get("status"),
         sync_revision=(status.get("sync") or {}).get("revision"),
         history=history,
+        weight=_parse_weight(annotations.get("kex/weight")),
     )
+
+
+def _parse_weight(raw: str | None) -> float:
+    """Parse ``kex/weight`` as a float; fall back to 0.0 on missing / malformed.
+
+    Negative weights float a group higher on the landing page (a group's
+    weight is the min of its apps' weights). Malformed values are
+    silently treated as the default so a typo can't crash the index.
+    """
+    if raw is None or raw == "":
+        return 0.0
+    try:
+        return float(raw)
+    except (ValueError, TypeError):
+        return 0.0
 
 
 def _parse_links(annotations: dict[str, str]) -> list[Link]:

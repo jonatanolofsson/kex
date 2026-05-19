@@ -24,6 +24,28 @@ Display
 ``kex/icon``
     Icon hint (string keyword; mapped to an icon in the UI).
 
+Display ordering
+----------------
+
+``kex/weight``
+    Float (default ``0``). Lower values float the app's group higher on
+    the landing page. The group's effective rank is the **min** of its
+    apps' weights, so any single app can pull its group up — there's no
+    central registry, and apps that don't care stay quiet at ``0``.
+
+    Conventions used across the EdgeLab cluster today:
+
+    - ``-30`` — operator-critical edge apps (Converter IR, Truckbed).
+    - ``-20`` — actively-developed ML platform anchors (Flyte).
+    - ``-10`` — LLM stack (llm-edgelab).
+    - ``0`` — default; Data and Storage, DevOps, Platform.
+    - ``+10`` — background infrastructure (cert-manager, reloader,
+      network-check, …) that should sink to the bottom.
+
+    Ties (apps with identical group weights) break on group name via
+    ``localeCompare`` for deterministic order across reloads. Malformed
+    values fall back silently to ``0``.
+
 Detail page
 -----------
 

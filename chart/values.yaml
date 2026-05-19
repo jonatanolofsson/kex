@@ -12,11 +12,18 @@ host: edgelab.k8sapps.boliden.internal
 # Set to false to disable the OIDC gate entirely (not recommended).
 oauthEnabled: true
 
-# Secret holding the ArgoCD API token (sealed via kubeseal-webgui).
-# argocdTokenSecretName: kex-argocd-token
-# argocdTokenSecretKey: token
+# Secret holding the ArgoCD API token. Two pieces:
+#   * argocdTokenSecretName — name of the in-cluster Secret the Deployment
+#     reads ARGOCD_AUTH_TOKEN from. Leave empty to disable the git column;
+#     the page degrades gracefully to "git data unavailable".
+#   * argocdToken.sealedValue — encrypted token from `kubeseal --raw …`.
+#     The chart materialises a SealedSecret carrying this blob iff both
+#     `argocdTokenSecretName` and `argocdToken.sealedValue` are set.
+# Rotation procedure: docs/operations.rst.
 argocdTokenSecretName: ""
 argocdTokenSecretKey: token
+argocdToken:
+  sealedValue: ""
 
 # ArgoCD server URL inside the cluster.
 argocdServer: https://argocd-server.argocd.svc.cluster.local

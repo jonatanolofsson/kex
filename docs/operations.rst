@@ -11,30 +11,62 @@ on every tag.
 ArgoCD authentication
 ---------------------
 
-kex authenticates to ArgoCD's HTTP API using its own Kubernetes
-ServiceAccount JWT, verified by ``argocd-server`` via ``TokenReview``.
-There is **no long-lived static token** to rotate.
+kex authenticates to ArgoCD's HTTP API with a long-lived account
+token, issued once a year by an operator and committed to the
+platform repo as a SealedSecret. The SA-JWT path was evaluated but
+needs argocd-cm tuning beyond what's currently in place; the
+account-token path mirrors the existing backstage-readonly pattern
+and is the supported model today.
 
-Cluster-side setup (one-time):
+Cluster-side setup (one-time, already in place on EdgeLab):
 
 .. code-block:: yaml
 
-   # argocd-cm
+   # argocd-cm  (ops/argocd-config/templates/argocd-cm-config-overrides.yaml)
    data:
-     accounts.kex: apiKey, login
+     accounts.kex: apiKey
      accounts.kex.enabled: "true"
 
-   # argocd-rbac-cm
+   # argocd-rbac-cm  (auth/rbac/templates/argocd-rbac.yaml)
    data:
      policy.csv: |
-       p, kex, applications, get, */*, allow
-       p, kex, applications, list, */*, allow
-       p, kex, repositories, get, *, allow
-       g, system:serviceaccount:kex:kex, kex
+       p, role:kex-readonly, applications, get, */*, allow
+       p, role:kex-readonly, applications, list, */*, allow
+       p, role:kex-readonly, projects, get, *, allow
+       p, role:kex-readonly, repositories, get, *, allow
+       g, kex, role:kex-readonly
 
-If SA-JWT verification turns out to need apiserver flags that aren't
-configured, fall back to a long-lived project-role token sealed via
-``kubeseal-webgui``.
+Rotating the token (yearly, or sooner if compromised)
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Run from a dev shell that has both ``argocd`` and ``kubeseal``
+available (the kex repo's nix flake provides both):
+
+.. code-block:: bash
+
+   # 1. Log in with your OIDC session (browser opens).
+   argocd login argocd-styles.k8sapps.boliden.internal --grpc-web --sso
+
+   # 2. Generate a fresh token for the kex account.
+   TOKEN=$(argocd account generate-token \
+       --account kex --expires-in 12months)
+
+   # 3. Encrypt the token strict-scoped to the kex namespace + the
+   #    secret name the deployment reads ARGOCD_AUTH_TOKEN from.
+   SEALED=$(echo -n "$TOKEN" | kubeseal --raw \
+       --namespace kex --name kex-argocd-token \
+       --controller-namespace sealed-secrets \
+       --scope strict)
+
+   # 4. Paste $SEALED into default-helm-charts-ARGO's
+   #    values-edgelab.yaml under kex.argocdToken.sealedValue,
+   #    commit, push. ArgoCD reconciles within ~3 min and the new
+   #    Secret materialises in the kex namespace.
+
+The previous token can be revoked from ArgoCD after the new one is
+verified active::
+
+   argocd account delete-token --account kex <old-token-id>
 
 Troubleshooting
 ---------------

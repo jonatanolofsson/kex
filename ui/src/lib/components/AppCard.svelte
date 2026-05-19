@@ -4,7 +4,12 @@
     let { app } = $props();
 </script>
 
-<a class="card" href="#/apps/{encodeURIComponent(app.name)}" aria-label={app.title}>
+<a
+    class="card"
+    href="#/apps/{encodeURIComponent(app.name)}"
+    aria-label={app.title}
+    title={app.description || app.title}
+>
     {#if app.icon}
         <span class="icon" aria-hidden="true">{app.icon}</span>
     {/if}

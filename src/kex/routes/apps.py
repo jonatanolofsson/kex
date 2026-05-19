@@ -41,6 +41,7 @@ def list_apps() -> list[dict[str, Any]]:
                 "icon": meta.icon,
                 "sync_status": meta.sync_status,
                 "health_status": meta.health_status,
+                "weight": meta.weight,
             }
         )
     return rows
@@ -80,6 +81,7 @@ def get_app(name: str) -> dict[str, Any]:
         "ingresses": ingresses,
         "latest_commit": latest_commit,
         "recent_deployers": recent_deployers,
+        "weight": meta.weight,
     }
 
 
@@ -89,8 +91,10 @@ def _format_ingressroutes(
     """Flatten Traefik IngressRoute rules to ``[{host, path}, …]``.
 
     A single IngressRoute can have multiple routes; each match yields
-    its own row. The UI dedupes if needed; we keep the wire format
-    explicit.
+    its own row. Empty-host rows (path-only matches like
+    ``PathPrefix(`/internal/`)`` without a ``Host()``) are routing
+    internals — not user-navigable URLs — and get dropped here so the
+    detail page only shows real entry points.
     """
     out: list[dict[str, str]] = []
     for item in items:
@@ -98,6 +102,8 @@ def _format_ingressroutes(
         for route in spec.get("routes") or []:
             match = str(route.get("match", ""))
             for host, path in _extract_hosts_and_paths(match):
+                if not host:
+                    continue
                 out.append({"host": host, "path": path})
     return out
 
