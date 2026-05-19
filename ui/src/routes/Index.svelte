@@ -1,7 +1,7 @@
 <script>
     import { onMount } from 'svelte';
     import { listApps } from '../lib/api.js';
-    import { config } from '../lib/store.js';
+    import { config } from '../lib/store.svelte.js';
     import AppCard from '../lib/components/AppCard.svelte';
     import SearchBar from '../lib/components/SearchBar.svelte';
 

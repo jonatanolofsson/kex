@@ -4,7 +4,7 @@
     import Index from './routes/Index.svelte';
     import AppDetail from './routes/AppDetail.svelte';
     import ThemeToggle from './lib/components/ThemeToggle.svelte';
-    import { config, hydrateConfig } from './lib/store.js';
+    import { config, hydrateConfig } from './lib/store.svelte.js';
 
     const routes = {
         '/': Index,
