@@ -27,11 +27,18 @@ Display
 Display ordering
 ----------------
 
-``kex/weight``
-    Float (default ``0``). Lower values float the app's group higher on
-    the landing page. The group's effective rank is the **min** of its
-    apps' weights, so any single app can pull its group up — there's no
-    central registry, and apps that don't care stay quiet at ``0``.
+Two independent axes, both float-valued and defaulting to ``0``; both
+silently fall back to the default on malformed values so a typo can't
+crash the index.
+
+Group order — ``kex/groupweight``
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+    Controls **between**-group ordering. A group's effective rank is
+    the **min** of its apps' ``kex/groupweight``, so any single app
+    can pull its group up — there's no central registry, and apps
+    that don't care stay quiet at ``0``. Lower number = higher on
+    the page.
 
     Conventions used across the EdgeLab cluster today:
 
@@ -42,9 +49,35 @@ Display ordering
     - ``+10`` — background infrastructure (cert-manager, reloader,
       network-check, …) that should sink to the bottom.
 
-    Ties (apps with identical group weights) break on group name via
-    ``localeCompare`` for deterministic order across reloads. Malformed
-    values fall back silently to ``0``.
+    Ties break on group name via ``localeCompare``.
+
+Within-group order — ``kex/weight``
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+    Controls **within**-group ordering. Each app's value places it
+    among the cards inside its group; lower number = earlier in the
+    row. Apps that don't care stay at ``0`` and alphabetise on
+    title (then ``name``).
+
+    Conventions used today:
+
+    - ``-10`` — "first card in group" anchor. Platform Docs uses
+      this so operators landing on the page see the docs entry first
+      within DevOps.
+    - ``0`` — default.
+
+    The two axes are **independent**: declaring ``kex/weight: -10``
+    does **not** affect group order. To also float the group, set
+    ``kex/groupweight`` separately.
+
+Migration from v1.1
+~~~~~~~~~~~~~~~~~~~
+
+    Before v1.2 there was a single ``kex/weight`` annotation that
+    controlled group order. To free up the natural name for the new
+    within-group axis, the v1.1 ``kex/weight`` semantics moved to
+    ``kex/groupweight``. Magnitudes didn't change; rename the key
+    only.
 
 Detail page
 -----------

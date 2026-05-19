@@ -191,7 +191,34 @@ def test_parse_handles_missing_blocks(broken: dict) -> None:
     assert meta.links == []
 
 
+class TestGroupWeight:
+    """``kex/groupweight`` — between-group ordering."""
+
+    def test_missing_defaults_to_zero(self) -> None:
+        assert parse(_app({})).group_weight == 0.0
+
+    def test_positive_integer(self) -> None:
+        assert parse(_app({"kex/groupweight": "10"})).group_weight == 10.0
+
+    def test_negative_float(self) -> None:
+        assert parse(_app({"kex/groupweight": "-2.5"})).group_weight == -2.5
+
+    def test_malformed_falls_back_to_zero(self) -> None:
+        assert parse(_app({"kex/groupweight": "high-priority"})).group_weight == 0.0
+
+    def test_empty_string_defaults_to_zero(self) -> None:
+        assert parse(_app({"kex/groupweight": ""})).group_weight == 0.0
+
+    def test_does_not_read_old_kex_weight(self) -> None:
+        """The pre-rename key (``kex/weight``) must not bleed into group_weight."""
+        meta = parse(_app({"kex/weight": "-30"}))
+        assert meta.group_weight == 0.0
+        assert meta.weight == -30.0
+
+
 class TestWeight:
+    """``kex/weight`` — within-group ordering."""
+
     def test_missing_defaults_to_zero(self) -> None:
         assert parse(_app({})).weight == 0.0
 
@@ -202,7 +229,13 @@ class TestWeight:
         assert parse(_app({"kex/weight": "-2.5"})).weight == -2.5
 
     def test_malformed_falls_back_to_zero(self) -> None:
-        assert parse(_app({"kex/weight": "high-priority"})).weight == 0.0
+        assert parse(_app({"kex/weight": "first-please"})).weight == 0.0
 
     def test_empty_string_defaults_to_zero(self) -> None:
         assert parse(_app({"kex/weight": ""})).weight == 0.0
+
+    def test_independent_of_groupweight(self) -> None:
+        """Setting one annotation must not affect the other."""
+        meta = parse(_app({"kex/weight": "-10", "kex/groupweight": "-30"}))
+        assert meta.weight == -10.0
+        assert meta.group_weight == -30.0

@@ -41,6 +41,7 @@ def list_apps() -> list[dict[str, Any]]:
                 "icon": meta.icon,
                 "sync_status": meta.sync_status,
                 "health_status": meta.health_status,
+                "group_weight": meta.group_weight,
                 "weight": meta.weight,
             }
         )
@@ -81,6 +82,7 @@ def get_app(name: str) -> dict[str, Any]:
         "ingresses": ingresses,
         "latest_commit": latest_commit,
         "recent_deployers": recent_deployers,
+        "group_weight": meta.group_weight,
         "weight": meta.weight,
     }
 

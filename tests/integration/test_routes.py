@@ -50,6 +50,7 @@ def _app_doc(
     about: str = "",
     history: list[dict[str, str]] | None = None,
     weight: str | None = None,
+    groupweight: str | None = None,
 ) -> dict[str, Any]:
     annotations: dict[str, str] = {}
     if enabled:
@@ -63,6 +64,8 @@ def _app_doc(
         annotations["kex/about"] = about
     if weight is not None:
         annotations["kex/weight"] = weight
+    if groupweight is not None:
+        annotations["kex/groupweight"] = groupweight
     for key, value in (links or {}).items():
         annotations[f"kex/links.{key}"] = value
 
@@ -247,26 +250,37 @@ class TestDetail:
         assert body["ingresses"] == [{"host": "a.example", "path": "/"}]
 
 
-class TestWeightInResponse:
-    def test_list_response_carries_weight(
+class TestSortingInResponse:
+    def test_list_response_carries_both_axes(
         self, client: TestClient, fake_cluster: dict[str, Any]
     ) -> None:
         fake_cluster["applications"] = [
-            _app_doc("default-weight"),
-            _app_doc("heavy", weight="10"),
-            _app_doc("floats-up", weight="-2.5"),
+            _app_doc("defaulted"),
+            _app_doc("in-group-first", weight="-10"),
+            _app_doc("group-anchor", groupweight="-30"),
+            _app_doc("both", weight="-5", groupweight="-15"),
         ]
         rows = {row["name"]: row for row in client.get("/api/apps").json()}
-        assert rows["default-weight"]["weight"] == 0.0
-        assert rows["heavy"]["weight"] == 10.0
-        assert rows["floats-up"]["weight"] == -2.5
 
-    def test_detail_response_carries_weight(
+        assert rows["defaulted"]["weight"] == 0.0
+        assert rows["defaulted"]["group_weight"] == 0.0
+
+        assert rows["in-group-first"]["weight"] == -10.0
+        assert rows["in-group-first"]["group_weight"] == 0.0
+
+        assert rows["group-anchor"]["weight"] == 0.0
+        assert rows["group-anchor"]["group_weight"] == -30.0
+
+        assert rows["both"]["weight"] == -5.0
+        assert rows["both"]["group_weight"] == -15.0
+
+    def test_detail_response_carries_both_axes(
         self, client: TestClient, fake_cluster: dict[str, Any]
     ) -> None:
-        fake_cluster["applications"] = [_app_doc("a", weight="-30")]
+        fake_cluster["applications"] = [_app_doc("a", weight="-10", groupweight="-30")]
         body = client.get("/api/apps/a").json()
-        assert body["weight"] == -30.0
+        assert body["weight"] == -10.0
+        assert body["group_weight"] == -30.0
 
 
 class TestGitFanout:

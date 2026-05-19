@@ -53,6 +53,7 @@ class AppMetadata:
     health_status: str | None
     sync_revision: str | None
     history: list[dict[str, Any]]
+    group_weight: float
     weight: float
 
 
@@ -100,23 +101,31 @@ def parse(app: dict[str, Any]) -> AppMetadata:
         health_status=(status.get("health") or {}).get("status"),
         sync_revision=(status.get("sync") or {}).get("revision"),
         history=history,
-        weight=_parse_weight(annotations.get("kex/weight")),
+        group_weight=_parse_float_annotation(annotations, "kex/groupweight"),
+        weight=_parse_float_annotation(annotations, "kex/weight"),
     )
 
 
-def _parse_weight(raw: str | None) -> float:
-    """Parse ``kex/weight`` as a float; fall back to 0.0 on missing / malformed.
+def _parse_float_annotation(annotations: dict[str, str], key: str, default: float = 0.0) -> float:
+    """Parse a ``kex/<key>`` annotation as a float; fall back on missing / malformed.
 
-    Negative weights float a group higher on the landing page (a group's
-    weight is the min of its apps' weights). Malformed values are
-    silently treated as the default so a typo can't crash the index.
+    Two axes of position are encoded as floats:
+
+    - ``kex/groupweight`` — between-group ordering. A group's effective
+      weight is the ``min`` across its apps; lower floats the group higher.
+    - ``kex/weight`` — within-group ordering. Per-app, ascending; ties
+      break on title.
+
+    Both go through this helper so missing / empty / malformed values
+    silently fall back to ``default`` and a typo can't crash the index.
     """
+    raw = annotations.get(key)
     if raw is None or raw == "":
-        return 0.0
+        return default
     try:
         return float(raw)
     except (ValueError, TypeError):
-        return 0.0
+        return default
 
 
 def _parse_links(annotations: dict[str, str]) -> list[Link]:

@@ -32,18 +32,32 @@
     let filtered = $derived(apps.filter((a) => matches(a, query)));
 
     /**
-     * Group weight = min(weights of apps in the group). Lower weight floats
-     * the group higher on the landing page. Apps that don't declare a
-     * `kex/weight` annotation arrive as `weight: 0`. Ties break on group
-     * name via `localeCompare` so the order is deterministic.
+     * Two-axis ordering driven by Application annotations:
+     *
+     *   `kex/groupweight` (per app) → group's effective weight is the min
+     *     across its apps; lower floats the *group* higher on the page.
+     *   `kex/weight` (per app) → app's position *within* its group; lower
+     *     sorts earlier. Ties break on title (then name) for stable order.
+     *
+     * Missing / non-finite annotations default to 0 on both axes.
      */
+    const safeFloat = (v) => (Number.isFinite(v) ? v : 0);
+
     function groupWeight(apps) {
         let min = Infinity;
         for (const app of apps) {
-            const w = Number.isFinite(app.weight) ? app.weight : 0;
+            const w = safeFloat(app.group_weight);
             if (w < min) min = w;
         }
         return min === Infinity ? 0 : min;
+    }
+
+    function appSortKey(a, b) {
+        const dw = safeFloat(a.weight) - safeFloat(b.weight);
+        if (dw !== 0) return dw;
+        const dt = (a.title || '').localeCompare(b.title || '');
+        if (dt !== 0) return dt;
+        return (a.name || '').localeCompare(b.name || '');
     }
 
     let groups = $derived.by(() => {
@@ -53,6 +67,11 @@
             if (!m.has(g)) m.set(g, []);
             m.get(g).push(app);
         }
+        // Sort apps within each group by (weight, title, name).
+        for (const items of m.values()) {
+            items.sort(appSortKey);
+        }
+        // Sort groups by min-groupweight, with localeCompare tiebreak.
         return [...m.entries()].sort(([aName, aApps], [bName, bApps]) => {
             const dw = groupWeight(aApps) - groupWeight(bApps);
             return dw !== 0 ? dw : aName.localeCompare(bName);
