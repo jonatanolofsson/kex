@@ -12,13 +12,12 @@ import logging
 from typing import Any
 
 from fastapi import APIRouter, HTTPException
-from markdown_it import MarkdownIt
 
 from kex import annotations, argocd, k8s
+from kex.markdown import md as _md
 
 logger = logging.getLogger(__name__)
 router = APIRouter()
-_md = MarkdownIt("commonmark", {"breaks": True, "html": False})
 
 
 @router.get("/api/apps")
@@ -43,9 +42,35 @@ def list_apps() -> list[dict[str, Any]]:
                 "health_status": meta.health_status,
                 "group_weight": meta.group_weight,
                 "weight": meta.weight,
+                "quick_links": _card_quick_links(meta),
             }
         )
     return rows
+
+
+# Card quick-link slots: two fixed semantic labels promoted from
+# kex/links.<key> to the landing-page card. Other kex/links.* still
+# render in the detail-page sidebar via `meta.links`.
+_QUICK_LINK_SLOTS = (
+    ("app", "↗"),  # Launch the running service.
+    ("docs", "📖"),  # Read the docs.
+)
+
+
+def _card_quick_links(meta: annotations.AppMetadata) -> list[dict[str, str]]:
+    """Promote `kex/links.app` and `kex/links.docs` to the card.
+
+    Returns them in the order declared in ``_QUICK_LINK_SLOTS`` (app
+    first, docs second). Missing slots are dropped; the shape stays
+    a list so the SPA can map over it directly.
+    """
+    by_label = {link.label: link.url for link in meta.links}
+    promoted: list[dict[str, str]] = []
+    for label, icon in _QUICK_LINK_SLOTS:
+        url = by_label.get(label)
+        if url:
+            promoted.append({"label": label, "url": url, "icon": icon})
+    return promoted
 
 
 @router.get("/api/apps/{name}")

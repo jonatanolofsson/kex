@@ -47,6 +47,30 @@ caBundle:
   existingConfigMap: ""
   configMapKey: "ca-bundle.crt"
 
+# Per-cluster UI configuration. Rendered to a ConfigMap and mounted at
+# /etc/kex/config/ui.json; the backend reads it once at startup and
+# serves it on GET /api/config. stakater/reloader on the Deployment
+# turns an edit here into a rolling restart, so a `helm upgrade` (or
+# ArgoCD sync) propagates without a manual kubectl rollout.
+#
+# All fields default to empty so the chart still renders cleanly
+# without per-cluster overrides — the SPA hides any section whose
+# corresponding value is empty.
+#
+#   clusterName       Brand label shown in the header + hero (e.g. "EdgeLab").
+#   heroTagline       One-line subtitle under the hero <h1>.
+#   headerLinks       Row of buttons in the header. Each item is
+#                     {label, url, icon?}; icon is the single-char glyph
+#                     to the left of the label (omit to render label only).
+#   welcomeMarkdown   Free-form CommonMark text. Renders as a card below
+#                     the hero. HTML is escaped (`html: false`); line
+#                     breaks honoured (`breaks: true`).
+ui:
+  clusterName: ""
+  heroTagline: ""
+  headerLinks: []
+  welcomeMarkdown: ""
+
 resources:
   requests:
     cpu: 50m

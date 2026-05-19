@@ -1,6 +1,7 @@
 <script>
     import { onMount } from 'svelte';
     import { listApps } from '../lib/api.js';
+    import { config } from '../lib/store.js';
     import AppCard from '../lib/components/AppCard.svelte';
     import SearchBar from '../lib/components/SearchBar.svelte';
 
@@ -128,6 +129,37 @@
         gap: 2rem;
         padding: 3rem 0 2.5rem;
         flex-wrap: wrap;
+    }
+
+    .welcome {
+        background: var(--ctp-mantle);
+        border: 1px solid var(--ctp-surface0);
+        border-radius: 12px;
+        padding: 1.5rem 1.75rem;
+        margin-bottom: 2rem;
+        color: var(--ctp-subtext1);
+        line-height: 1.55;
+    }
+
+    .welcome :global(p) {
+        margin: 0 0 0.75rem;
+        max-width: 70ch;
+    }
+
+    .welcome :global(p:last-child) {
+        margin-bottom: 0;
+    }
+
+    .welcome :global(a) {
+        color: var(--ctp-mauve);
+    }
+
+    .welcome :global(code) {
+        font-family: var(--font-mono);
+        background: var(--ctp-crust);
+        padding: 0.05rem 0.3rem;
+        border-radius: 4px;
+        color: var(--ctp-green);
     }
 
     .hero-text {

@@ -250,6 +250,44 @@ class TestDetail:
         assert body["ingresses"] == [{"host": "a.example", "path": "/"}]
 
 
+class TestQuickLinksOnCard:
+    """The list response promotes `kex/links.app` and `kex/links.docs` to
+    a per-card `quick_links` array so the SPA can render them without
+    pulling the full detail-page response. Other `kex/links.*` stay in
+    the detail-page sidebar only."""
+
+    def test_no_links_no_quick_links(
+        self, client: TestClient, fake_cluster: dict[str, Any]
+    ) -> None:
+        fake_cluster["applications"] = [_app_doc("a")]
+        row = client.get("/api/apps").json()[0]
+        assert row["quick_links"] == []
+
+    def test_only_app_slot_promoted(self, client: TestClient, fake_cluster: dict[str, Any]) -> None:
+        fake_cluster["applications"] = [
+            _app_doc("a", links={"app": "https://app/", "grafana": "https://g/"}),
+        ]
+        row = client.get("/api/apps").json()[0]
+        assert [q["label"] for q in row["quick_links"]] == ["app"]
+        assert row["quick_links"][0]["url"] == "https://app/"
+
+    def test_app_and_docs_in_order(self, client: TestClient, fake_cluster: dict[str, Any]) -> None:
+        fake_cluster["applications"] = [
+            _app_doc(
+                "a",
+                links={
+                    "docs": "https://docs/",
+                    "app": "https://app/",
+                    "grafana": "https://g/",
+                },
+            ),
+        ]
+        row = client.get("/api/apps").json()[0]
+        # app always before docs, regardless of annotation declaration order
+        assert [q["label"] for q in row["quick_links"]] == ["app", "docs"]
+        assert all("icon" in q and q["icon"] for q in row["quick_links"])
+
+
 class TestSortingInResponse:
     def test_list_response_carries_both_axes(
         self, client: TestClient, fake_cluster: dict[str, Any]

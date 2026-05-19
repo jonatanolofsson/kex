@@ -25,3 +25,8 @@ export async function listApps() {
 export async function getApp(name) {
     return _get(`/apps/${encodeURIComponent(name)}`);
 }
+
+/** Cluster-scoped UI config (header links, welcome, cluster name, tagline). */
+export async function getConfig() {
+    return _get('/config');
+}

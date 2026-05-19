@@ -12,6 +12,7 @@ from fastapi import FastAPI
 
 from kex import __version__
 from kex.routes.apps import router as apps_router
+from kex.routes.config import router as config_router
 
 app = FastAPI(
     title="kex",
@@ -20,6 +21,7 @@ app = FastAPI(
 )
 
 app.include_router(apps_router)
+app.include_router(config_router)
 
 
 @app.get("/healthz")
