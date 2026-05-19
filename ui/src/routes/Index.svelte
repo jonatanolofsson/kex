@@ -82,11 +82,19 @@
 
 <section class="hero">
     <div class="hero-text">
-        <h1>EdgeLab</h1>
-        <p class="tagline">Boliden's Kubernetes cluster for ML research and edge operations.</p>
+        {#if config.cluster_name}
+            <h1>{config.cluster_name}</h1>
+        {/if}
+        {#if config.hero_tagline}
+            <p class="tagline">{config.hero_tagline}</p>
+        {/if}
     </div>
     <SearchBar bind:value={query} />
 </section>
+
+{#if config.welcome_html}
+    <section class="welcome">{@html config.welcome_html}</section>
+{/if}
 
 {#if loading}
     <p class="state">Loading applications…</p>

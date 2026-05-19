@@ -29,7 +29,7 @@
             {#each config.header_links as link (link.url)}
                 <a href={link.url} target="_blank" rel="noopener">
                     {#if link.icon}
-                        <span class="link-icon" aria-hidden="true">📖</span>
+                        <span class="link-icon" aria-hidden="true">{link.icon}</span>
                     {/if}
                     {link.label}
                 </a>
