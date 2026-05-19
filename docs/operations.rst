@@ -37,7 +37,7 @@ Cluster-side setup (one-time, already in place on EdgeLab):
        g, kex, role:kex-readonly
 
 Rotating the token (yearly, or sooner if compromised)
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Run from a dev shell that has both ``argocd`` and ``kubeseal``
 available (the kex repo's nix flake provides both):
