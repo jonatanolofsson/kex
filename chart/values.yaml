@@ -25,11 +25,13 @@ argocdTokenSecretKey: token
 argocdToken:
   sealedValue: ""
 
-# ArgoCD server URL inside the cluster. HTTPS by default — if your
-# argocd-server uses a cert chain that's not in the default system
-# trust store (e.g. an internal CA), pass the trust bundle below via
-# caBundle.content and kex will verify against it.
-argocdServer: https://argocd-server.argocd.svc.cluster.local
+# ArgoCD server URL inside the cluster. Default is HTTP because many
+# argocd-server deployments run with --insecure (TLS terminated at the
+# ingress proxy upstream); the in-cluster service then resets HTTPS
+# handshakes. Switch to https://… if your argocd-server actually serves
+# TLS, in which case set `caBundle.content` below so kex trusts the
+# right roots.
+argocdServer: http://argocd-server.argocd.svc.cluster.local
 
 # Optional CA bundle, mounted into the kex pod for outbound TLS verification
 # (currently just the ArgoCD HTTP client). Two ways to provide it:
