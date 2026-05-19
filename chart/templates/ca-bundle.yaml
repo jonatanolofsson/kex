@@ -1,0 +1,17 @@
+{{/* Optional CA bundle ConfigMap. Renders iff `.Values.caBundle.content`
+     is non-empty (inline PEM passed via helm values). If you'd rather
+     supply the bundle from an existing ConfigMap, leave content empty
+     and set `caBundle.existingConfigMap` — deployment.yaml mounts
+     either source via the same path. Keeping the bundle out of the
+     image keeps kex itself cluster-agnostic. */}}
+{{- if .Values.caBundle.content -}}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "kex.name" . }}-ca-bundle
+  namespace: {{ .Release.Namespace }}
+  labels: {{- include "kex.labels" . | nindent 4 }}
+data:
+  {{ .Values.caBundle.configMapKey }}: |-
+{{ .Values.caBundle.content | indent 4 }}
+{{- end -}}

@@ -20,6 +20,7 @@
             pkgs.kubectl
             pkgs.kubeseal
             pkgs.kubernetes-helm
+            pkgs.argocd
             pkgs.pre-commit
             pkgs.ripgrep
           ];

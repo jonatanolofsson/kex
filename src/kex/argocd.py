@@ -31,9 +31,21 @@ TOKEN_PATH = Path(
 CACHE_TTL_SECONDS = int(os.environ.get("KEX_ARGOCD_CACHE_TTL", "3600"))
 CACHE_MAX_SIZE = int(os.environ.get("KEX_ARGOCD_CACHE_SIZE", "1024"))
 
-# Verify TLS by default; can be turned off via env for local development
-# against a self-signed argocd cluster.
-VERIFY_TLS = os.environ.get("KEX_ARGOCD_VERIFY_TLS", "true").lower() != "false"
+# TLS verification for the ArgoCD HTTPS client. Three modes:
+#   * KEX_ARGOCD_CA_BUNDLE=/path/to/bundle.pem — verify against that bundle
+#     (mounted by the chart from an external ConfigMap; keeps cluster-
+#     specific CAs out of the kex image).
+#   * KEX_ARGOCD_VERIFY_TLS=false — disable verification entirely (local
+#     dev only).
+#   * Neither set — verify against the default system trust store.
+_CA_BUNDLE = os.environ.get("KEX_ARGOCD_CA_BUNDLE", "").strip()
+_VERIFY_TLS_FLAG = os.environ.get("KEX_ARGOCD_VERIFY_TLS", "true").lower() != "false"
+if _CA_BUNDLE:
+    VERIFY_TLS: bool | str = _CA_BUNDLE
+elif _VERIFY_TLS_FLAG:
+    VERIFY_TLS = True
+else:
+    VERIFY_TLS = False
 
 _metadata_cache: TTLCache[tuple[str, str], dict[str, Any]] = TTLCache(
     maxsize=CACHE_MAX_SIZE, ttl=CACHE_TTL_SECONDS

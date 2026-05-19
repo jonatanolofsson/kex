@@ -1,3 +1,13 @@
+{{/* Resolve the CA bundle source: either an inline-rendered ConfigMap
+     ({{ release.name }}-ca-bundle) or a pre-existing one named in
+     `.Values.caBundle.existingConfigMap`. Empty disables the mount. */}}
+{{- $caCM := "" -}}
+{{- if .Values.caBundle.content -}}
+{{- $caCM = printf "%s-ca-bundle" (include "kex.name" .) -}}
+{{- else if .Values.caBundle.existingConfigMap -}}
+{{- $caCM = .Values.caBundle.existingConfigMap -}}
+{{- end -}}
+{{- $caKey := .Values.caBundle.configMapKey | default "ca-bundle.crt" -}}
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -30,6 +40,10 @@ spec:
                   name: {{ .Values.argocdTokenSecretName }}
                   key: {{ .Values.argocdTokenSecretKey }}
             {{- end }}
+            {{- if $caCM }}
+            - name: KEX_ARGOCD_CA_BUNDLE
+              value: /etc/kex/ca/{{ $caKey }}
+            {{- end }}
           livenessProbe:
             httpGet:
               path: /healthz
@@ -43,3 +57,16 @@ spec:
             initialDelaySeconds: 3
             periodSeconds: 10
           resources: {{- toYaml .Values.resources | nindent 12 }}
+          {{- if $caCM }}
+          volumeMounts:
+            - name: ca-bundle
+              mountPath: /etc/kex/ca/{{ $caKey }}
+              subPath: {{ $caKey }}
+              readOnly: true
+          {{- end }}
+      {{- if $caCM }}
+      volumes:
+        - name: ca-bundle
+          configMap:
+            name: {{ $caCM }}
+      {{- end }}

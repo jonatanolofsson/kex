@@ -25,12 +25,25 @@ argocdTokenSecretKey: token
 argocdToken:
   sealedValue: ""
 
-# ArgoCD server URL inside the cluster. Uses HTTP/port 80 (the gRPC-web
-# plain-text port) by default — argocd-server's HTTPS/443 is terminated
-# via a self-signed cert chain that kex would otherwise reject with a
-# TLS connection reset. The connection stays inside the cluster; OIDC
-# is enforced at the kex IngressRoute, not at this internal hop.
-argocdServer: http://argocd-server.argocd.svc.cluster.local
+# ArgoCD server URL inside the cluster. HTTPS by default — if your
+# argocd-server uses a cert chain that's not in the default system
+# trust store (e.g. an internal CA), pass the trust bundle below via
+# caBundle.content and kex will verify against it.
+argocdServer: https://argocd-server.argocd.svc.cluster.local
+
+# Optional CA bundle, mounted into the kex pod for outbound TLS verification
+# (currently just the ArgoCD HTTP client). Two ways to provide it:
+#   * Inline PEM content via caBundle.content — chart renders a ConfigMap
+#     in the release namespace and mounts it. Keeps the kex container
+#     image fully generic; cluster-specific roots never get baked in.
+#   * Pre-existing ConfigMap via caBundle.existingConfigMap — name of a
+#     ConfigMap already in the release namespace with the PEM in
+#     `caBundle.configMapKey`.
+# Leave both empty if argocdServer is plaintext / publicly-trusted.
+caBundle:
+  content: ""
+  existingConfigMap: ""
+  configMapKey: "ca-bundle.crt"
 
 resources:
   requests:
