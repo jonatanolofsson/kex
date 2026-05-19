@@ -53,11 +53,23 @@ _metadata_cache: TTLCache[tuple[str, str], dict[str, Any]] = TTLCache(
 
 
 def _read_token() -> str | None:
-    """Read the SA token from disk on demand.
+    """Resolve the bearer token for the ArgoCD HTTP API.
 
-    Kubelet rotates the token every ~1h; we re-read on every cache
-    miss rather than caching the token, so rotation is transparent.
+    Two sources, in order:
+
+    1. ``ARGOCD_AUTH_TOKEN`` env var — an ArgoCD ``account
+       generate-token`` JWT mounted from a SealedSecret. This is the
+       supported path against current EdgeLab; argocd doesn't accept
+       raw k8s ServiceAccount JWTs out of the box.
+    2. ``TOKEN_PATH`` (default ``/var/run/secrets/.../token``) — kex's
+       own k8s SA token. Kept as a fallback for future deployments
+       that wire argocd's ``TokenReview`` integration (no static token
+       to seal). The caller degrades gracefully on the 401 that
+       results when argocd hasn't been configured for SA tokens.
     """
+    env_token = os.environ.get("ARGOCD_AUTH_TOKEN", "").strip()
+    if env_token:
+        return env_token
     try:
         return TOKEN_PATH.read_text().strip()
     except OSError:
