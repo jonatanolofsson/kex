@@ -37,3 +37,30 @@ See `docs/design-principles.rst` for the full list.
 ## Workflow
 
 `docs → test → implement → check` before commit. Conventional commits (`feat:`, `fix:`, `docs:`, …).
+
+## Advising consumers (apps registering on the index)
+
+Apps surface themselves on kex by adding `kex/*` annotations to their
+own ArgoCD `Application` CR — no central catalog edit.
+
+- **Required:** `kex/enabled: "true"`.
+- **Strongly recommended:** `kex/title`, `kex/description`, `kex/group`.
+- **Optional:** `kex/icon`, `kex/about` (markdown for the detail page),
+  `kex/links.<label>: <url>`, `kex/groupweight` / `kex/weight` (ordering).
+
+Kubernetes annotation values are always strings — booleans and integers must be quoted
+(`"true"`, `"-30"`). Validate at the consumer's generator layer so a TOML `true`
+doesn't silently land as a number.
+
+For apps whose Application manifest is **auto-generated** (e.g. ruskin's
+`rollout-argocd-gen` used by truckbed and converter-ir; helm chart values for
+self-hosted apps), the annotations must come from the generator's input,
+not from hand-edits to the generated YAML — otherwise the next
+regeneration wipes them. Ruskin exposes a `[argocd.annotations]` table in
+`rollout.toml` for exactly this; see `truckbed/rollouts/aitik/rollout.toml`
+for a worked Truckbed example.
+
+`docs/annotations.rst` is the canonical contract — the cluster-wide
+`groupweight` convention table lives there. Point consumers at that file
+rather than restating the conventions ad-hoc; keeping the convention
+single-sourced prevents drift between docs and reality.
